@@ -13,7 +13,7 @@ namespace GitTrends.UITests
     [TestFixture(Platform.Android, UserType.LoggedIn)]
     [TestFixture(Platform.iOS, UserType.LoggedIn)]
     [TestFixture(Platform.iOS, UserType.Demo)]
-    class RepositoriesTests : BaseTest
+    class RepositoriesTests : BaseUITest
     {
         public RepositoriesTests(Platform platform, UserType userType) : base(platform, userType)
         {
@@ -184,6 +184,7 @@ namespace GitTrends.UITests
 
             //Act
             RepositoryPage.TriggerPullToRefresh();
+            await RepositoryPage.WaitForPullToRefreshIndicator().ConfigureAwait(false);
             await RepositoryPage.WaitForNoPullToRefreshIndicator().ConfigureAwait(false);
 
             smallScreenTrendingImageCount = RepositoryPage.SmallScreenTrendingImageCount;
