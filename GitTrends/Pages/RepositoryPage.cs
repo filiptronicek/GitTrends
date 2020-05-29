@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,7 +47,8 @@ namespace GitTrends
                 Footer = Device.RuntimePlatform is Device.Android ? new BoxView { HeightRequest = BaseRepositoryDataTemplate.TopPadding } : null,
                 EmptyView = new EmptyDataView("EmptyRepositoriesList", RepositoryPageAutomationIds.EmptyDataView)
                             .Bind<EmptyDataView, bool, bool>(IsVisibleProperty, nameof(RepositoryViewModel.IsRefreshing), convert: isRefreshing => !isRefreshing)
-                            .Bind(EmptyDataView.TextProperty, nameof(RepositoryViewModel.EmptyDataViewText))
+                            .Bind(EmptyDataView.TitleProperty, nameof(RepositoryViewModel.EmptyDataViewTitle))
+                            .Bind(EmptyDataView.DescriptionProperty, nameof(RepositoryViewModel.EmptyDataViewDescription))
 
             };
             collectionView.SelectionChanged += HandleCollectionViewSelectionChanged;
@@ -126,7 +126,7 @@ namespace GitTrends
             else if (!_firstRunService.IsFirstRun
                         && isUserValid(token.AccessToken)
                         && _refreshView.Content is CollectionView collectionView
-                        && IsNullOrEmpty(collectionView.ItemsSource))
+                        && collectionView.ItemsSource.IsNullOrEmpty())
             {
                 _refreshView.IsRefreshing = true;
             }
@@ -139,8 +139,6 @@ namespace GitTrends
             }
 
             bool isUserValid(in string accessToken) => !string.IsNullOrWhiteSpace(accessToken) || !string.IsNullOrWhiteSpace(_gitHubUserService.Alias);
-
-            static bool IsNullOrEmpty(in IEnumerable? enumerable) => !enumerable?.GetEnumerator().MoveNext() ?? true;
         }
 
         async void HandleCollectionViewSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -152,8 +150,8 @@ namespace GitTrends
             {
                 AnalyticsService.Track("Repository Tapped", new Dictionary<string, string>
                 {
-                    { nameof(Repository.OwnerLogin), repository.OwnerLogin },
-                    { nameof(Repository.Name), repository.Name }
+                    { nameof(Repository) + nameof(Repository.OwnerLogin), repository.OwnerLogin },
+                    { nameof(Repository) + nameof(Repository.Name), repository.Name }
                 });
 
                 await NavigateToTrendsPage(repository);
