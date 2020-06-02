@@ -54,27 +54,10 @@ namespace GitTrends.iOS
 
         public override bool OpenUrl(UIApplication app, NSUrl url, NSDictionary options)
         {
-            var callbackUri = new Uri(url.AbsoluteString);
+            if (Xamarin.Essentials.Platform.OpenUrl(app, url, options))
+                return true;
 
-            HandleCallbackUri(callbackUri).SafeFireAndForget(onException);
-
-            return true;
-
-            static async Task HandleCallbackUri(Uri callbackUri)
-            {
-                await ViewControllerServices.CloseSFSafariViewController().ConfigureAwait(false);
-
-                using var scope = ContainerService.Container.BeginLifetimeScope();
-
-                var gitHubAuthenticationService = scope.Resolve<GitHubAuthenticationService>();
-                await gitHubAuthenticationService.AuthorizeSession(callbackUri, CancellationToken.None).ConfigureAwait(false);
-            }
-
-            static void onException(Exception e)
-            {
-                using var containerScope = ContainerService.Container.BeginLifetimeScope();
-                containerScope.Resolve<IAnalyticsService>().Report(e);
-            }
+            return base.OpenUrl(app, url, options);
         }
 
         public override async void ReceivedRemoteNotification(UIApplication application, NSDictionary userInfo)

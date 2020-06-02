@@ -15,7 +15,7 @@ using Xamarin.Forms;
 namespace GitTrends.Droid
 {
     [Activity(Label = "GitTrends", Icon = "@mipmap/icon", RoundIcon = "@mipmap/icon_round", Theme = "@style/LaunchTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ScreenOrientation = ScreenOrientation.Portrait)]
-    [IntentFilter(new string[] { Intent.ActionView }, Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable }, DataSchemes = new[] { "gittrends" })]
+    [IntentFilter(new string[] { Intent.ActionView }, Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable }, DataSchemes = new[] { CallbackConstants.Scheme })]
     public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Permission[] grantResults)
@@ -44,36 +44,21 @@ namespace GitTrends.Droid
 
             LoadApplication(new App(analyticsService, notificationService, themeService, splashScreenPage));
 
-            TryHandleOpenedFromUri(Intent?.Data);
             TryHandleOpenedFromNotification(Intent);
         }
 
-        protected override async void OnNewIntent(Intent intent)
+        protected override void OnResume()
+        {
+            base.OnResume();
+
+            Xamarin.Essentials.Platform.OnResume();
+        }
+
+        protected override void OnNewIntent(Intent intent)
         {
             base.OnNewIntent(intent);
 
-            if (intent?.Data is Android.Net.Uri callbackUri)
-            {
-                await AuthorizeGitHubSession(callbackUri).ConfigureAwait(false);
-            }
-
             TryHandleOpenedFromNotification(intent);
-        }
-
-        static async Task AuthorizeGitHubSession(Android.Net.Uri callbackUri)
-        {
-            using var containerScope = ContainerService.Container.BeginLifetimeScope();
-
-            try
-            {
-                var gitHubAuthenticationService = containerScope.Resolve<GitHubAuthenticationService>();
-
-                await gitHubAuthenticationService.AuthorizeSession(new Uri(callbackUri.ToString()), CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                containerScope.Resolve<IAnalyticsService>().Report(ex);
-            }
         }
 
         async void TryHandleOpenedFromNotification(Intent? intent)
@@ -101,14 +86,6 @@ namespace GitTrends.Droid
             catch (ObjectDisposedException)
             {
 
-            }
-        }
-
-        async void TryHandleOpenedFromUri(Android.Net.Uri? callbackUri)
-        {
-            if (callbackUri != null)
-            {
-                await AuthorizeGitHubSession(callbackUri).ConfigureAwait(false);
             }
         }
     }

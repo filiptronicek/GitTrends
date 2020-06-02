@@ -16,14 +16,16 @@ namespace GitTrends
         readonly IBrowser _browser;
         readonly IMainThread _mainThread;
         readonly ILauncher _launcher;
+        readonly IWebAuthenticator _webAuthenticator;
 
-        public DeepLinkingService(IMainThread mainThread, IBrowser browser, IEmail email, IAppInfo appInfo, ILauncher launcher)
+        public DeepLinkingService(IMainThread mainThread, IBrowser browser, IEmail email, IAppInfo appInfo, ILauncher launcher, IWebAuthenticator webAuthenticator)
         {
             _appInfo = appInfo;
             _email = email;
             _browser = browser;
             _mainThread = mainThread;
             _launcher = launcher;
+            _webAuthenticator = webAuthenticator;
         }
 
         public Task ShowSettingsUI() => _mainThread.InvokeOnMainThreadAsync(_appInfo.ShowSettingsUI);
@@ -43,6 +45,8 @@ namespace GitTrends
             else
                 return Task.FromResult(true);
         }
+
+        public Task<Xamarin.Essentials.WebAuthenticatorResult> LaunchWebAuthenticator(Uri uri, Uri callbackUri) => _mainThread.InvokeOnMainThreadAsync(() => _webAuthenticator.AuthenticateAsync(uri, callbackUri));
 
         public Task OpenBrowser(Uri uri) => OpenBrowser(uri.ToString());
 

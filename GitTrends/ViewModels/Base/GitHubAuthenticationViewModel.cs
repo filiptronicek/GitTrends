@@ -66,27 +66,46 @@ namespace GitTrends
         {
             IsAuthenticating = true;
 
+            var fiveMinuteTimeoutCancellationToken = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
             try
             {
                 var loginUrl = await gitHubAuthenticationService.GetGitHubLoginUrl(cancellationToken).ConfigureAwait(false);
 
                 if (!string.IsNullOrWhiteSpace(loginUrl))
                 {
-                    await deepLinkingService.OpenBrowser(loginUrl, browserLaunchOptions).ConfigureAwait(false);
+                    var result = await deepLinkingService.LaunchWebAuthenticator(new Uri(loginUrl), new Uri(CallbackConstants.CallbackUrl)).ConfigureAwait(false);
+                    await gitHubAuthenticationService.AuthorizeSession(result.Properties["code"], result.Properties["state"], fiveMinuteTimeoutCancellationToken.Token);
                 }
                 else
                 {
-                    await deepLinkingService.DisplayAlert("Error", "Couldn't connect to GitHub Login. Check your internet connection and try again", "OK").ConfigureAwait(false);
+                    await displayConnectionErrorAlert().ConfigureAwait(false);
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                //Only Show Error Message only if IsCancellationRequested
+                //On Android, TaskCanceledException is thrown by Xamarin.Essentials if the user clicks 'X' on the browser to return to the app
+                if (fiveMinuteTimeoutCancellationToken.IsCancellationRequested)
+                    await deepLinkingService.DisplayAlert("Login Timeout", "GitHub Login took longer than five minutes", "OK").ConfigureAwait(false);
+                else if (cancellationToken.IsCancellationRequested)
+                    await displayConnectionErrorAlert().ConfigureAwait(false);
+            }
+            catch (Exception e) when (e.GetType().FullName.Contains("NSErrorException"))
+            {
+                //On iOS, Foundation.NSErrorException is thrown by Xamarin.Essentials if the user clicks 'X' on the browser to return to the app
             }
             catch (Exception e)
             {
                 AnalyticsService.Report(e);
+                await displayConnectionErrorAlert().ConfigureAwait(false);
             }
             finally
             {
                 IsAuthenticating = false;
             }
+
+            Task displayConnectionErrorAlert() => deepLinkingService.DisplayAlert("Error", "Couldn't connect to GitHub Login. Check your internet connection and try again", "OK");
         }
 
         void HandleAuthorizeSessionStarted(object sender, EventArgs e) => IsAuthenticating = true;

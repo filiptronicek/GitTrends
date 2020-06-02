@@ -29,6 +29,7 @@ namespace GitTrends
             builder.RegisterType<PreferencesImplementation>().As<IPreferences>().SingleInstance();
             builder.RegisterType<SecureStorageImplementation>().As<ISecureStorage>().SingleInstance();
             builder.RegisterType<VersionTrackingImplementation>().As<IVersionTracking>().SingleInstance();
+            builder.RegisterType<WebAuthenticatorImplementation>().As<IWebAuthenticator>().SingleInstance();
 
             //Register Services
             builder.RegisterType<AnalyticsService>().As<IAnalyticsService>().SingleInstance();

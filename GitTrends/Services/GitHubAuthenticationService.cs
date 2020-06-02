@@ -90,12 +90,9 @@ namespace GitTrends
             return $"{GitHubConstants.GitHubBaseUrl}/login/oauth/authorize?client_id={clientIdDTO.ClientId}&scope={GitHubConstants.OAuthScope}&state={MostRecentSessionId}";
         }
 
-        public async Task AuthorizeSession(Uri callbackUri, CancellationToken cancellationToken)
+        public async Task AuthorizeSession(string code, string state, CancellationToken cancellationToken)
         {
             OnAuthorizeSessionStarted();
-
-            var code = HttpUtility.ParseQueryString(callbackUri.Query).Get("code");
-            var state = HttpUtility.ParseQueryString(callbackUri.Query).Get("state");
 
             try
             {
