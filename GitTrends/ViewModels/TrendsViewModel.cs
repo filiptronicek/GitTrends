@@ -13,9 +13,10 @@ using Xamarin.Forms;
 
 namespace GitTrends
 {
-    class TrendsViewModel : BaseViewModel
+    public class TrendsViewModel : BaseViewModel
     {
-        const string _emptyDataViewText_NoTrafficYet = "No traffic yet";
+        public const string NoTrafficYetText = "No traffic yet";
+        public const int MinumumChartHeight = 20;
 
         readonly GitHubApiV3Service _gitHubApiV3Service;
 
@@ -56,7 +57,7 @@ namespace GitTrends
         public ICommand ClonesCardTappedCommand { get; }
         public ICommand UniqueClonesCardTappedCommand { get; }
 
-        public ICommand FetchDataCommand { get; }
+        public IAsyncCommand<(Repository Repository, CancellationToken CancellationToken)> FetchDataCommand { get; }
 
         public double DailyViewsClonesMinValue { get; } = 0;
 
@@ -69,12 +70,10 @@ namespace GitTrends
         {
             get
             {
-                const int minimumValue = 20;
-
                 var dailyViewMaxValue = DailyViewsList.Any() ? DailyViewsList.Max(x => x.TotalViews) : 0;
                 var dailyClonesMaxValue = DailyClonesList.Any() ? DailyClonesList.Max(x => x.TotalClones) : 0;
 
-                return Math.Max(Math.Max(dailyViewMaxValue, dailyClonesMaxValue), minimumValue);
+                return Math.Max(Math.Max(dailyViewMaxValue, dailyClonesMaxValue), MinumumChartHeight);
             }
         }
 
@@ -184,14 +183,14 @@ namespace GitTrends
                     repositoryClones = repositoryClonesResponse.DailyClonesList;
                 }
 
-                EmptyDataViewTitle = _emptyDataViewText_NoTrafficYet;
+                EmptyDataViewTitle = NoTrafficYetText;
             }
             catch (Exception e)
             {
                 repositoryViews = Enumerable.Empty<DailyViewsModel>().ToList();
                 repositoryClones = Enumerable.Empty<DailyClonesModel>().ToList();
 
-                EmptyDataViewTitle = EmptyDataView.UnableToRetrieveDataText;
+                EmptyDataViewTitle = EmptyDataViewConstants.UnableToRetrieveData;
 
                 AnalyticsService.Report(e);
             }

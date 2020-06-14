@@ -10,8 +10,8 @@ namespace GitTrends.iOS
     {
         public AppDelegate() => Xamarin.Calabash.Start();
 
-        TestsBackdoorService? _uiTestBackdoorService;
-        TestsBackdoorService UITestBackdoorService => _uiTestBackdoorService ??= ContainerService.Container.BeginLifetimeScope().Resolve<TestsBackdoorService>();
+        UITestsBackdoorService? _uiTestBackdoorService;
+        UITestsBackdoorService UITestBackdoorService => _uiTestBackdoorService ??= ContainerService.Container.BeginLifetimeScope().Resolve<UITestsBackdoorService>();
 
         [Preserve, Export(BackdoorMethodConstants.SetGitHubUser + ":")]
         public async void SetGitHubUser(NSString accessToken) =>
@@ -63,6 +63,18 @@ namespace GitTrends.iOS
         [Preserve, Export(BackdoorMethodConstants.GetGitHubToken + ":")]
         public NSString GetGitHubToken(NSString noValue) =>
             SerializeObject(UITestBackdoorService.GetGitHubToken().GetAwaiter().GetResult());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserAlias + ":")]
+        public NSString GetLoggedInUserAlias(NSString noValue) =>
+            SerializeObject(UITestBackdoorService.GetLoggedInUserAlias());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserName + ":")]
+        public NSString GetLoggedInUserName(NSString noValue) =>
+            SerializeObject(UITestBackdoorService.GetLoggedInUserName());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserAvatarUrl + ":")]
+        public NSString GetLoggedInUserAvatarUrl(NSString noValue) =>
+            SerializeObject(UITestBackdoorService.GetLoggedInUserAvatarUrl());
 
         static NSString SerializeObject<T>(T value) => new NSString(Newtonsoft.Json.JsonConvert.SerializeObject(value));
     }

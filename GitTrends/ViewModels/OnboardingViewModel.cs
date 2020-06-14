@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using GitTrends.Mobile.Shared;
@@ -48,7 +47,7 @@ namespace GitTrends
 
         public override bool IsDemoButtonVisible => IsNotAuthenticating;
 
-        public ICommand EnableNotificationsButtonTapped { get; }
+        public IAsyncCommand EnableNotificationsButtonTapped { get; }
 
         public string NotificationStatusSvgImageSource
         {
@@ -56,7 +55,7 @@ namespace GitTrends
             set => SetProperty(ref _notificationStatusSvgImageSource, SvgService.GetFullPath(value));
         }
 
-        protected override async Task ExecuteDemoButtonCommand(string buttonText)
+        protected override async Task ExecuteDemoButtonCommand(string? buttonText)
         {
             try
             {

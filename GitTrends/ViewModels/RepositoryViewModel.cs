@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -68,7 +70,7 @@ namespace GitTrends
             remove => _pullToRefreshFailedEventManager.RemoveEventHandler(value);
         }
 
-        public ICommand PullToRefreshCommand { get; }
+        public IAsyncCommand PullToRefreshCommand { get; }
         public ICommand FilterRepositoriesCommand { get; }
         public ICommand SortRepositoriesCommand { get; }
 
@@ -100,43 +102,15 @@ namespace GitTrends
         {
             set
             {
-                const string pleaseLoginAgain = "Please login again";
-                const string clearSearchBarTryAgain = "Clear search bar and try again";
-                const string swipeDownToRefresh = "Swipe down to retrieve repositories";
-
-                const string noFilterMatch = "No Matching Repository Found";
-                const string emptyList = "Your repositories list is empty";
-                const string loginExpired = "GitHub Login Expired";
-                const string uninitialized = "Data not gathered";
-
-                EmptyDataViewTitle = value switch
-                {
-                    RefreshState.Uninitialized => uninitialized,
-                    RefreshState.Succeeded when _repositoryList.Any() => noFilterMatch,
-                    RefreshState.Succeeded => emptyList,
-                    RefreshState.LoginExpired => loginExpired,
-                    RefreshState.Error when _repositoryList.Any() => noFilterMatch,
-                    RefreshState.Error => EmptyDataView.UnableToRetrieveDataText,
-                    RefreshState.MaximumApiLimit => EmptyDataView.UnableToRetrieveDataText,
-                    _ => throw new NotSupportedException()
-                };
-
-                EmptyDataViewDescription = value switch
-                {
-                    RefreshState.Uninitialized => swipeDownToRefresh,
-                    RefreshState.Succeeded when _repositoryList.Any() => clearSearchBarTryAgain,
-                    RefreshState.Succeeded => string.Empty,
-                    RefreshState.LoginExpired => pleaseLoginAgain,
-                    RefreshState.Error when _repositoryList.Any() => clearSearchBarTryAgain,
-                    RefreshState.Error => swipeDownToRefresh,
-                    RefreshState.MaximumApiLimit => swipeDownToRefresh,
-                    _ => throw new NotSupportedException()
-                };
+                EmptyDataViewTitle = EmptyDataViewConstants.GetRepositoryTitleText(value, !_repositoryList.Any());
+                EmptyDataViewDescription = EmptyDataViewConstants.GetRepositoryDescriptionText(value, !_repositoryList.Any());
             }
         }
 
         async Task ExecutePullToRefreshCommand(string repositoryOwner)
         {
+            HttpResponseMessage? finalResponse = null;
+
             var cancellationTokenSource = new CancellationTokenSource();
             _gitHubAuthenticationService.AuthorizeSessionStarted += HandleAuthorizeSessionStarted;
             _gitHubAuthenticationService.LoggedOut += HandleLoggedOut;
@@ -168,9 +142,17 @@ namespace GitTrends
                 //Add Remaining Repositories to VisibleRepositoryList
                 AddRepositoriesToCollection(completedRepoitories, _searchBarText, shouldRemoveRepoisitoriesWithoutViewsClonesData: true);
 
+                if (!_gitHubUserService.IsDemoUser)
+                {
+                    //Call EnsureSuccessStatusCode to confirm the above API calls executed successfully
+                    finalResponse = await _gitHubApiV3Service.GetGitHubApiResponse(cancellationTokenSource.Token).ConfigureAwait(false);
+                    finalResponse.EnsureSuccessStatusCode();
+                }
+
                 RefreshState = RefreshState.Succeeded;
             }
-            catch (ApiException e) when (e.StatusCode is HttpStatusCode.Unauthorized)
+            catch (Exception e) when ((e is ApiException exception && exception.StatusCode is HttpStatusCode.Unauthorized)
+                                        || (e is HttpRequestException && finalResponse != null && finalResponse.StatusCode is HttpStatusCode.Unauthorized))
             {
                 var loginExpiredEventArgs = new LoginExpiredPullToRefreshEventArgs();
 
@@ -179,16 +161,24 @@ namespace GitTrends
                 await _gitHubAuthenticationService.LogOut().ConfigureAwait(false);
                 await _repositoryDatabase.DeleteAllData().ConfigureAwait(false);
 
-                VisibleRepositoryList = Enumerable.Empty<Repository>().ToList();
+                SetRepositoriesCollection(Enumerable.Empty<Repository>(), _searchBarText);
 
                 RefreshState = RefreshState.LoginExpired;
             }
-            catch (ApiException e) when (GitHubApiService.HasReachedMaximimApiCallLimit(e))
+            catch (Exception e) when (GitHubApiService.HasReachedMaximimApiCallLimit(e)
+                                        || (e is HttpRequestException && finalResponse != null && GitHubApiService.HasReachedMaximimApiCallLimit(finalResponse.Headers)))
             {
-                var maximimApiRequestsReachedEventArgs = new MaximimApiRequestsReachedEventArgs(GitHubApiService.GetRateLimitResetDateTime(e));
+                var responseHeaders = e switch
+                {
+                    ApiException exception => exception.Headers,
+                    HttpRequestException _ when finalResponse != null => finalResponse.Headers,
+                    _ => throw new NotSupportedException()
+                };
+
+                var maximimApiRequestsReachedEventArgs = new MaximimApiRequestsReachedEventArgs(GitHubApiService.GetRateLimitResetDateTime(responseHeaders));
                 OnPullToRefreshFailed(maximimApiRequestsReachedEventArgs);
 
-                VisibleRepositoryList = Enumerable.Empty<Repository>().ToList();
+                SetRepositoriesCollection(Enumerable.Empty<Repository>(), _searchBarText);
 
                 RefreshState = RefreshState.MaximumApiLimit;
             }

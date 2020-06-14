@@ -9,8 +9,8 @@ namespace GitTrends.Droid
 {
     public partial class MainApplication
     {
-        TestsBackdoorService? _uiTestBackdoorService;
-        TestsBackdoorService UITestBackdoorService => _uiTestBackdoorService ??= ContainerService.Container.BeginLifetimeScope().Resolve<TestsBackdoorService>();
+        UITestsBackdoorService? _uiTestBackdoorService;
+        UITestsBackdoorService UITestBackdoorService => _uiTestBackdoorService ??= ContainerService.Container.BeginLifetimeScope().Resolve<UITestsBackdoorService>();
 
         [Preserve, Export(BackdoorMethodConstants.SetGitHubUser)]
         public async void SetGitHubUser(string accessToken) =>
@@ -58,6 +58,15 @@ namespace GitTrends.Droid
 
         [Preserve, Export(BackdoorMethodConstants.GetGitHubToken)]
         public string GetGitHubToken() => SerializeObject(UITestBackdoorService.GetGitHubToken().GetAwaiter().GetResult());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserAlias)]
+        public string GetLoggedInUserAlias() => SerializeObject(UITestBackdoorService.GetLoggedInUserAlias());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserName)]
+        public string GetLoggedInUserName() => SerializeObject(UITestBackdoorService.GetLoggedInUserName());
+
+        [Preserve, Export(BackdoorMethodConstants.GetLoggedInUserAvatarUrl)]
+        public string GetLoggedInUserAvatarUrl() => SerializeObject(UITestBackdoorService.GetLoggedInUserAvatarUrl());
 
         static string SerializeObject<T>(T value) => Newtonsoft.Json.JsonConvert.SerializeObject(value);
     }

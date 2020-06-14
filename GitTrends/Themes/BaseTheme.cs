@@ -5,8 +5,8 @@ namespace GitTrends
 {
     public abstract class BaseTheme : ResourceDictionary
     {
-        public const string LightTealColorHex = "338F82";
-        public const string CoralColorHex = "F97B4F";
+        public const string LightTealColorHex = "#338F82";
+        public const string CoralColorHex = "#F97B4F";
 
         protected BaseTheme()
         {
@@ -70,6 +70,9 @@ namespace GitTrends
             Add(nameof(GitHubHandleColor), GitHubHandleColor);
 
             Add(nameof(PrimaryColor), PrimaryColor);
+
+            Add(nameof(CloseButtonTextColor), CloseButtonTextColor);
+            Add(nameof(CloseButtonBackgroundColor), CloseButtonBackgroundColor);
 
             Add(nameof(GitTrendsImageSource), GitTrendsImageSource);
             Add(nameof(DefaultProfileImageSource), DefaultProfileImageSource);
@@ -149,6 +152,9 @@ namespace GitTrends
         public abstract Color GitHubHandleColor { get; }
 
         public abstract Color PrimaryColor { get; }
+
+        public abstract Color CloseButtonTextColor { get; }
+        public abstract Color CloseButtonBackgroundColor { get; }
 
         public abstract string GitTrendsImageSource { get; }
         public abstract string DefaultProfileImageSource { get; }

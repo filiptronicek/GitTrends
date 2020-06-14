@@ -66,7 +66,8 @@ namespace GitTrends.UITests
             //Act
             SettingsPage.ToggleRegisterForNotificationsSwitch();
 
-            await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            SettingsPage.WaitForNoOperatingSystemNotificationDiaglog();
 
             shouldSendNotifications_Final = SettingsPage.ShouldSendNotifications;
             areNotificationsEnabled_Final = SettingsPage.AreNotificationsEnabled;
@@ -157,8 +158,8 @@ namespace GitTrends.UITests
             SettingsPage.TapGitHubUserView();
 
             //Assert
-            Assert.AreEqual("@" + LoggedInUserConstants.Alias, aliasLabelText);
-            Assert.AreEqual(LoggedInUserConstants.Name, nameLabelText);
+            Assert.AreEqual("@" + LoggedInUserAlias, aliasLabelText);
+            Assert.AreEqual(LoggedInUserName, nameLabelText);
 
             if (App is iOSApp)
             {

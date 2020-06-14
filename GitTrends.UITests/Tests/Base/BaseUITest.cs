@@ -36,6 +36,10 @@ namespace GitTrends.UITests
         protected OnboardingPage OnboardingPage => _onboardingPage ?? throw new NullReferenceException();
         protected WelcomePage WelcomePage => _welcomePage ?? throw new NullReferenceException();
 
+        protected string LoggedInUserAlias => App.InvokeBackdoorMethod<string>(BackdoorMethodConstants.GetLoggedInUserAlias);
+        protected string LoggedInUserName => App.InvokeBackdoorMethod<string>(BackdoorMethodConstants.GetLoggedInUserName);
+        protected string LoggedInUserAvatarUrl => App.InvokeBackdoorMethod<string>(BackdoorMethodConstants.GetLoggedInUserAvatarUrl);
+
         [SetUp]
         public virtual Task BeforeEachTest()
         {
@@ -85,9 +89,9 @@ namespace GitTrends.UITests
 
         protected async Task LoginToGitHub()
         {
-            var uiTestToken = await AzureFunctionsApiService.GetUITestToken().ConfigureAwait(false);
+            var token = await AzureFunctionsApiService.GetTestToken().ConfigureAwait(false);
 
-            App.InvokeBackdoorMethod(BackdoorMethodConstants.SetGitHubUser, uiTestToken.AccessToken);
+            App.InvokeBackdoorMethod(BackdoorMethodConstants.SetGitHubUser, token.AccessToken);
 
             GitHubToken? currentUserToken = null;
 

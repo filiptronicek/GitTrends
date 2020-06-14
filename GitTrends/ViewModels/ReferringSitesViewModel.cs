@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ using Xamarin.Forms;
 
 namespace GitTrends
 {
-    class ReferringSitesViewModel : BaseViewModel
+    public class ReferringSitesViewModel : BaseViewModel
     {
         readonly WeakEventManager<PullToRefreshFailedEventArgs> _pullToRefreshFailedEventManager = new WeakEventManager<PullToRefreshFailedEventArgs>();
 
@@ -79,7 +80,7 @@ namespace GitTrends
 
         public ICommand NoButtonCommand { get; }
         public ICommand YesButtonCommand { get; }
-        public ICommand RefreshCommand { get; }
+        public IAsyncCommand<(string Owner, string Repository, string RepositoryUrl, CancellationToken Token)> RefreshCommand { get; }
 
         public string EmptyDataViewTitle
         {
@@ -139,32 +140,8 @@ namespace GitTrends
         {
             set
             {
-                const string pleaseLoginAgain = "Please login again";
-                const string swipeDownToRefresh = "Swipe down to retrieve referring sites";
-
-                const string emptyList = "No referrals yet";
-                const string loginExpired = "GitHub Login Expired";
-                const string uninitialized = "Data not gathered";
-
-                EmptyDataViewTitle = value switch
-                {
-                    RefreshState.Uninitialized => uninitialized,
-                    RefreshState.Succeeded => emptyList,
-                    RefreshState.LoginExpired => loginExpired,
-                    RefreshState.Error => EmptyDataView.UnableToRetrieveDataText,
-                    RefreshState.MaximumApiLimit => EmptyDataView.UnableToRetrieveDataText,
-                    _ => throw new NotSupportedException()
-                };
-
-                EmptyDataViewDescription = value switch
-                {
-                    RefreshState.Uninitialized => swipeDownToRefresh,
-                    RefreshState.Succeeded => string.Empty,
-                    RefreshState.LoginExpired => pleaseLoginAgain,
-                    RefreshState.Error => swipeDownToRefresh,
-                    RefreshState.MaximumApiLimit => swipeDownToRefresh,
-                    _ => throw new NotSupportedException()
-                };
+                EmptyDataViewTitle = EmptyDataViewConstants.GetReferringSitesTitleText(value);
+                EmptyDataViewDescription = EmptyDataViewConstants.GetReferringSitesDescriptionText(value);
             }
         }
 
@@ -189,6 +166,7 @@ namespace GitTrends
 
         async Task ExecuteRefreshCommand(string owner, string repository, string repositoryUrl, CancellationToken cancellationToken)
         {
+            HttpResponseMessage? finalResponse = null;
             IReadOnlyList<ReferringSiteModel> referringSitesList = Enumerable.Empty<ReferringSiteModel>().ToList();
 
             try
@@ -197,9 +175,17 @@ namespace GitTrends
 
                 MobileReferringSitesList = SortingService.SortReferringSites(referringSitesList.Select(x => new MobileReferringSiteModel(x))).ToList();
 
+                if (!_gitHubUserService.IsDemoUser)
+                {
+                    //Call EnsureSuccessStatusCode to confirm the above API calls executed successfully
+                    finalResponse = await _gitHubApiV3Service.GetGitHubApiResponse(cancellationToken).ConfigureAwait(false);
+                    finalResponse.EnsureSuccessStatusCode();
+                }
+
                 RefreshState = RefreshState.Succeeded;
             }
-            catch (ApiException e) when (e.StatusCode is HttpStatusCode.Unauthorized)
+            catch (Exception e) when ((e is ApiException exception && exception.StatusCode is HttpStatusCode.Unauthorized)
+                                        || (e is HttpRequestException && finalResponse != null && finalResponse.StatusCode is HttpStatusCode.Unauthorized))
             {
                 OnPullToRefreshFailed(new LoginExpiredPullToRefreshEventArgs());
 
@@ -207,9 +193,17 @@ namespace GitTrends
 
                 RefreshState = RefreshState.LoginExpired;
             }
-            catch (ApiException e) when (GitHubApiService.HasReachedMaximimApiCallLimit(e))
+            catch (Exception e) when (GitHubApiService.HasReachedMaximimApiCallLimit(e)
+                                        || (e is HttpRequestException && finalResponse != null && GitHubApiService.HasReachedMaximimApiCallLimit(finalResponse.Headers)))
             {
-                OnPullToRefreshFailed(new MaximimApiRequestsReachedEventArgs(GitHubApiService.GetRateLimitResetDateTime(e)));
+                var responseHeaders = e switch
+                {
+                    ApiException exception => exception.Headers,
+                    HttpRequestException _ when finalResponse != null => finalResponse.Headers,
+                    _ => throw new NotSupportedException()
+                };
+
+                OnPullToRefreshFailed(new MaximimApiRequestsReachedEventArgs(GitHubApiService.GetRateLimitResetDateTime(responseHeaders)));
 
                 RefreshState = RefreshState.MaximumApiLimit;
             }
