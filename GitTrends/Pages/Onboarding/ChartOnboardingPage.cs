@@ -1,8 +1,11 @@
 ﻿using GitTrends.Mobile.Common.Constants;
 using GitTrends.Shared;
+using MediaManager.Forms;
+using MediaManager.Playback;
+using MediaManager.Video;
+using Xamarin.CommunityToolkit.Markup;
 using Xamarin.Essentials.Interfaces;
 using Xamarin.Forms;
-using Xamarin.CommunityToolkit.Markup;
 using Xamarin.Forms.PancakeView;
 using static GitTrends.MarkupExtensions;
 using static Xamarin.CommunityToolkit.Markup.GridRowsColumns;
@@ -11,8 +14,13 @@ namespace GitTrends
 {
     public class ChartOnboardingPage : BaseOnboardingContentPage
     {
-        public ChartOnboardingPage(IAnalyticsService analyticsService, IMainThread mainThread) : base(analyticsService, mainThread, Color.FromHex(BaseTheme.CoralColorHex), OnboardingConstants.SkipText, 1)
+
+        public ChartOnboardingPage(IMainThread mainThread,
+                                    IAnalyticsService analyticsService,
+                                    MediaElementService mediaElementService)
+            : base(Color.FromHex(BaseTheme.CoralColorHex), OnboardingConstants.SkipText, mainThread, 1, analyticsService, mediaElementService)
         {
+
         }
 
         enum Row { Title, Zoom, LongPress }
@@ -25,13 +33,20 @@ namespace GitTrends
             BackgroundColor = Color.White,
             Padding = new Thickness(5),
 
-            //On iOS, use custom renderer for MediaElement until MediaElement.Dispose bug is fixed: https://github.com/xamarin/Xamarin.Forms/issues/9525#issuecomment-619156536
-            //On Android, use Custom Renderer for ExoPlayer because Xamarin.Forms.MediaElement uses Android.VideoView
-            Content = new VideoPlayerView(),
-
+#if AppStore
+#error iOS: VideoView flashes when looping & video is blurry (not buffered before playing)
+#endif
+            Content = new VideoView
+            {
+                AutoPlay = true,
+                Repeat = RepeatMode.All,
+                BackgroundColor = Color.Transparent,
+                VideoAspect = VideoAspectMode.AspectFit,
+                Source = MediaElementService.OnboardingChart?.HlsUrl,
+            }
         };
 
-        protected override TitleLabel CreateDescriptionTitleLabel() => new TitleLabel(OnboardingConstants.ChartPage_Title);
+        protected override TitleLabel CreateDescriptionTitleLabel() => new(OnboardingConstants.ChartPage_Title);
 
         protected override View CreateDescriptionBodyView() => new ScrollView
         {

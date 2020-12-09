@@ -46,6 +46,7 @@
         <PackageReference Include="Xamarin.Essentials.Interfaces" Version="1.6.0-pre5" />
         <PackageReference Include="Sharpnado.MaterialFrame" Version="1.1.3" />
         <PackageReference Include="Xamarin.CommunityToolkit.Markup" Version="1.0.0-pre5" />
+        <PackageReference Include="Plugin.MediaManager.Forms" Version="1.0.6" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="EventArgs\" />

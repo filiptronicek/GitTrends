@@ -33,6 +33,7 @@ namespace GitTrends.Droid
             AndroidShinyHost.Init(this, platformBuild: services => services.UseNotifications());
 
             Xamarin.Essentials.Platform.Init(this);
+            MediaManager.CrossMediaManager.Current.Init();
 
             FFImageLoading.Forms.Platform.CachedImageRenderer.Init(true);
             FFImageLoading.Forms.Platform.CachedImageRenderer.InitImageViewHandler();

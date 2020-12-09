@@ -12,7 +12,10 @@ namespace GitTrends
 {
     public class NotificationsOnboardingPage : BaseOnboardingContentPage
     {
-        public NotificationsOnboardingPage(IAnalyticsService analyticsService, IMainThread mainThread) : base(analyticsService, mainThread, Color.FromHex(BaseTheme.LightTealColorHex), OnboardingConstants.SkipText, 2)
+        public NotificationsOnboardingPage(IMainThread mainThread,
+                                            IAnalyticsService analyticsService,
+                                            MediaElementService mediaElementService)
+            : base(Color.FromHex(BaseTheme.LightTealColorHex), OnboardingConstants.SkipText, mainThread, 2, analyticsService, mediaElementService)
         {
 
         }

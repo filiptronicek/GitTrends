@@ -25,6 +25,8 @@ namespace GitTrends.iOS
 
             Syncfusion.SfChart.XForms.iOS.Renderers.SfChartRenderer.Init();
 
+            MediaManager.CrossMediaManager.Current.Init();
+
             FFImageLoading.Forms.Platform.CachedImageRenderer.Init();
             FFImageLoading.Forms.Platform.CachedImageRenderer.InitImageSourceHandler();
             var ignore = typeof(FFImageLoading.Svg.Forms.SvgCachedImage);

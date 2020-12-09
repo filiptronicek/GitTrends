@@ -11,12 +11,15 @@ namespace GitTrends
 {
     public abstract class BaseOnboardingContentPage : BaseContentPage
     {
-        protected BaseOnboardingContentPage(in IAnalyticsService analyticsService,
-                                            in IMainThread mainThread,
-                                            in Color backgroundColor,
+        protected BaseOnboardingContentPage(in Color backgroundColor,
                                             in string nextButtonText,
-                                            in int carouselPositionIndex) : base(analyticsService, mainThread)
+                                            in IMainThread mainThread,
+                                            in int carouselPositionIndex,
+                                            in IAnalyticsService analyticsService,
+                                            MediaElementService mediaElementService) : base(analyticsService, mainThread)
         {
+            MediaElementService = mediaElementService;
+
             //Don't Use BaseTheme.PageBackgroundColor
             RemoveDynamicResource(BackgroundColorProperty);
 
@@ -67,6 +70,8 @@ namespace GitTrends
         enum Row { Image, Description, Indicator }
         enum Column { Indicator, Button }
 
+        protected MediaElementService MediaElementService { get; }
+
         protected abstract View CreateImageView();
         protected abstract TitleLabel CreateDescriptionTitleLabel();
         protected abstract View CreateDescriptionBodyView();
@@ -85,32 +90,6 @@ namespace GitTrends
                 return 9;
 
             return Device.RuntimePlatform is Device.iOS ? 2 : 9;
-        }
-
-        class NextLabel : Label
-        {
-            public NextLabel(in string text)
-            {
-                Text = text;
-                FontSize = 15;
-                TextColor = Color.White;
-                BackgroundColor = Color.Transparent;
-                FontFamily = FontFamilyConstants.RobotoRegular;
-
-                Opacity = 0.8;
-
-                Margin = new Thickness(0, 0, 30, 0);
-
-                HorizontalOptions = LayoutOptions.End;
-                VerticalOptions = LayoutOptions.Center;
-
-                AutomationId = OnboardingAutomationIds.NextButon;
-
-                GestureRecognizers.Add(new TapGestureRecognizer { CommandParameter = text }
-                                        .Bind(TapGestureRecognizer.CommandProperty, nameof(OnboardingViewModel.DemoButtonCommand)));
-
-                this.SetBinding(IsVisibleProperty, nameof(OnboardingViewModel.IsDemoButtonVisible));
-            }
         }
 
         protected class BodySvg : SvgImage
@@ -145,6 +124,32 @@ namespace GitTrends
                 LineBreakMode = LineBreakMode.WordWrap;
                 FontFamily = FontFamilyConstants.RobotoRegular;
                 VerticalTextAlignment = TextAlignment.Start;
+            }
+        }
+
+        class NextLabel : Label
+        {
+            public NextLabel(in string text)
+            {
+                Text = text;
+                FontSize = 15;
+                TextColor = Color.White;
+                BackgroundColor = Color.Transparent;
+                FontFamily = FontFamilyConstants.RobotoRegular;
+
+                Opacity = 0.8;
+
+                Margin = new Thickness(0, 0, 30, 0);
+
+                HorizontalOptions = LayoutOptions.End;
+                VerticalOptions = LayoutOptions.Center;
+
+                AutomationId = OnboardingAutomationIds.NextButon;
+
+                GestureRecognizers.Add(new TapGestureRecognizer { CommandParameter = text }
+                                        .Bind(TapGestureRecognizer.CommandProperty, nameof(OnboardingViewModel.DemoButtonCommand)));
+
+                this.SetBinding(IsVisibleProperty, nameof(OnboardingViewModel.IsDemoButtonVisible));
             }
         }
 
