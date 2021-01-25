@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+GitTrendsCSProj=`find "$APPCENTER_SOURCE_DIRECTORY" -name GitTrends.csproj | head -1`
+echo GitTrendsCSProj=$GitTrendsCSProj
+
+dotnet build -c "$APPCENTER_XAMARIN_CONFIGURATION" $GitTrendsCSProj
+
 AzureConstantsFile=`find "$APPCENTER_SOURCE_DIRECTORY" -name AzureConstants.cs | head -1`
 echo CognitiveServicesConstantsFile = $AzureConstantsFile
 
