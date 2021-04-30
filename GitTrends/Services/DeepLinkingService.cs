@@ -16,18 +16,21 @@ namespace GitTrends
         readonly IBrowser _browser;
         readonly ILauncher _launcher;
         readonly IMainThread _mainThread;
+        readonly IBrowserServices _browserServices;
 
         public DeepLinkingService(IEmail email,
                                     IBrowser browser,
                                     IAppInfo appInfo,
                                     ILauncher launcher,
-                                    IMainThread mainThread)
+                                    IMainThread mainThread,
+                                    IBrowserServices browserServices)
         {
             _email = email;
             _appInfo = appInfo;
             _browser = browser;
             _launcher = launcher;
             _mainThread = mainThread;
+            _browserServices = browserServices;
         }
 
         public Task ShowSettingsUI() => _mainThread.InvokeOnMainThreadAsync(_appInfo.ShowSettingsUI);
@@ -47,6 +50,8 @@ namespace GitTrends
             else
                 return Task.FromResult(true);
         }
+
+        public Task ClearBrowserHistory() => _browserServices.TryClearBrowserHistory();
 
         public Task OpenBrowser(Uri uri) => OpenBrowser(uri.ToString());
 

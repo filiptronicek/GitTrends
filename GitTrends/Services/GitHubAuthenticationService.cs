@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -21,6 +22,7 @@ namespace GitTrends
         readonly IAnalyticsService _analyticsService;
         readonly GitHubUserService _gitHubUserService;
         readonly RepositoryDatabase _repositoryDatabase;
+        readonly DeepLinkingService _deepLinkingService;
         readonly GitHubGraphQLApiService _gitHubGraphQLApiService;
         readonly AzureFunctionsApiService _azureFunctionsApiService;
 
@@ -28,6 +30,7 @@ namespace GitTrends
                                             IAnalyticsService analyticsService,
                                             GitHubUserService gitHubUserService,
                                             RepositoryDatabase repositoryDatabase,
+                                            DeepLinkingService deepLinkingService,
                                             GitHubGraphQLApiService gitHubGraphQLApiService,
                                             AzureFunctionsApiService azureFunctionsApiService)
         {
@@ -35,6 +38,7 @@ namespace GitTrends
             _analyticsService = analyticsService;
             _gitHubUserService = gitHubUserService;
             _repositoryDatabase = repositoryDatabase;
+            _deepLinkingService = deepLinkingService;
             _gitHubGraphQLApiService = gitHubGraphQLApiService;
             _azureFunctionsApiService = azureFunctionsApiService;
 
@@ -137,6 +141,8 @@ namespace GitTrends
 
             _gitHubUserService.InvalidateToken();
             await _repositoryDatabase.DeleteAllData().ConfigureAwait(false);
+
+            await _deepLinkingService.ClearBrowserHistory().ConfigureAwait(false);
 
             OnLoggedOut();
         }

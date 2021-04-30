@@ -109,6 +109,7 @@
     <Compile Include="CustomRenderers\NavigationPageCustomRenderer.cs" />
     <Compile Include="Effects\LabelShadowEffect.cs" />
     <Compile Include="CustomRenderers\CarouselPageCustomRenderer.cs" />
+    <Compile Include="Services\BrowserServices_iOS.cs" />
   </ItemGroup>
   <ItemGroup>
     <InterfaceDefinition Include="Resources\LaunchScreen.storyboard" />
