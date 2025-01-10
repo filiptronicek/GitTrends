@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using GitTrends.Shared;
+using GitTrends.Common;
 
 namespace GitTrends.UITests
 {
@@ -11,7 +11,7 @@ namespace GitTrends.UITests
 
 		public string OwnerLogin { get; init; } = string.Empty;
 
-		public long? StarCount { get; init; }
+		public long StarCount { get; init; }
 
 		public long IssuesCount { get; init; }
 
@@ -27,6 +27,10 @@ namespace GitTrends.UITests
 
 		public string Url { get; init; } = string.Empty;
 
+		public bool IsArchived { get; init; }
+
+		public RepositoryPermission Permission { get; init; }
+
 		public long? TotalViews { get; init; }
 
 		public long? TotalUniqueViews { get; init; }
@@ -39,8 +43,8 @@ namespace GitTrends.UITests
 
 		public bool? IsFavorite { get; init; }
 
-		public IReadOnlyList<DailyViewsModel>? DailyViewsList { get; init; } = Array.Empty<DailyViewsModel>();
+		public IReadOnlyList<DailyViewsModel>? DailyViewsList { get; init; } = [];
 
-		public IReadOnlyList<DailyClonesModel>? DailyClonesList { get; init; } = Array.Empty<DailyClonesModel>();
+		public IReadOnlyList<DailyClonesModel>? DailyClonesList { get; init; } = [];
 	}
 }

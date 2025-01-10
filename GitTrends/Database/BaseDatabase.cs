@@ -1,59 +1,55 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using GitTrends.Shared;
+﻿using GitTrends.Common;
 using Polly;
+using Polly.Retry;
 using SQLite;
-using Xamarin.Essentials.Interfaces;
 
-namespace GitTrends
+namespace GitTrends;
+
+public abstract class BaseDatabase
 {
-	public abstract class BaseDatabase
+	readonly Lazy<SQLiteAsyncConnection> _databaseConnectionHolder;
+
+	protected BaseDatabase(IFileSystem fileSystem, IAnalyticsService analyticsService, TimeSpan expiresAt)
 	{
-		protected BaseDatabase(IFileSystem fileSystem, IAnalyticsService analyticsService, TimeSpan expiresAt)
-		{
-			ExpiresAt = expiresAt;
-			AnalyticsService = analyticsService;
+		ExpiresAt = expiresAt;
+		AnalyticsService = analyticsService;
 
-			var databasePath = Path.Combine(fileSystem.AppDataDirectory, $"{nameof(GitTrends)}.db3");
-			DatabaseConnection = new SQLiteAsyncConnection(databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
-		}
+		var databasePath = Path.Combine(fileSystem.AppDataDirectory, $"{nameof(GitTrends)}.db3");
+		_databaseConnectionHolder = new(() => new SQLiteAsyncConnection(databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache));
+	}
 
-		public TimeSpan ExpiresAt { get; }
-		protected IAnalyticsService AnalyticsService { get; }
+	public TimeSpan ExpiresAt { get; }
+	protected IAnalyticsService AnalyticsService { get; }
 
-		SQLiteAsyncConnection DatabaseConnection { get; }
+	SQLiteAsyncConnection DatabaseConnection => _databaseConnectionHolder.Value;
 
-		public abstract Task<int> DeleteAllData();
+	public abstract Task DeleteAllData(CancellationToken token);
 
-		protected static Task<T> AttemptAndRetry<T>(Func<Task<T>> action, int numRetries = 12)
-		{
-			return Policy.Handle<SQLiteException>().WaitAndRetryAsync(numRetries, pollyRetryAttempt).ExecuteAsync(action);
+	protected async Task<TReturn> Execute<TReturn, TDatabase>(Func<SQLiteAsyncConnection, Task<TReturn>> action, CancellationToken token, int maxRetries = 10)
+	{
+		var databaseConnection = await GetDatabaseConnection<TDatabase>().ConfigureAwait(false);
 
-			static TimeSpan pollyRetryAttempt(int attemptNumber) => TimeSpan.FromMilliseconds(Math.Pow(2, attemptNumber));
-		}
-
-		protected bool IsExpired(in DateTimeOffset downloadedAt) => downloadedAt.CompareTo(DateTimeOffset.UtcNow.Subtract(ExpiresAt)) <= 0;
-
-		protected async ValueTask<SQLiteAsyncConnection> GetDatabaseConnection<T>()
-		{
-			if (!DatabaseConnection.TableMappings.Any(x => x.MappedType == typeof(T)))
+		var resiliencePipeline = new ResiliencePipelineBuilder<TReturn>()
+			.AddRetry(new RetryStrategyOptions<TReturn>
 			{
-				await DatabaseConnection.EnableWriteAheadLoggingAsync().ConfigureAwait(false);
+				MaxRetryAttempts = maxRetries,
+				Delay = TimeSpan.FromMilliseconds(2),
+				BackoffType = DelayBackoffType.Exponential
+			}).Build();
 
-				try
-				{
-					await DatabaseConnection.CreateTablesAsync(CreateFlags.None, typeof(T)).ConfigureAwait(false);
-				}
-				catch (SQLiteException e) when (e.Message.Contains("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
-				{
-					await DatabaseConnection.DropTableAsync(DatabaseConnection.TableMappings.First(x => x.MappedType == typeof(T)));
-					await DatabaseConnection.CreateTablesAsync(CreateFlags.None, typeof(T)).ConfigureAwait(false);
-				}
-			}
+		return await resiliencePipeline.ExecuteAsync(async _ => await action(databaseConnection), token).ConfigureAwait(false);
+	}
 
+	protected bool IsExpired(in DateTimeOffset downloadedAt) => downloadedAt.CompareTo(DateTimeOffset.UtcNow.Subtract(ExpiresAt)) <= 0;
+
+	async ValueTask<SQLiteAsyncConnection> GetDatabaseConnection<T>()
+	{
+		if (DatabaseConnection.TableMappings.Any(static x => x.MappedType == typeof(T)))
 			return DatabaseConnection;
-		}
+
+		await DatabaseConnection.EnableWriteAheadLoggingAsync().ConfigureAwait(false);
+		await DatabaseConnection.CreateTableAsync(typeof(T)).ConfigureAwait(false);
+
+		return DatabaseConnection;
 	}
 }

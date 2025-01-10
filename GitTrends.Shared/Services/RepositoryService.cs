@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿namespace  GitTrends.Common;
 
-namespace GitTrends.Shared
+public static class RepositoryService
 {
-	public static class RepositoryService
+	public static IEnumerable<Repository> RemoveForksDuplicatesAndArchives(this IEnumerable<Repository> repositoriesList, Func<Repository, bool>? duplicateRepositoryPriorityFilter = null)
 	{
-		public static IEnumerable<Repository> RemoveForksAndDuplicates(in IEnumerable<Repository> repositoriesList) =>
-			repositoriesList.Where(x => !x.IsFork).OrderByDescending(x => x.DataDownloadedAt).GroupBy(x => x.Name).Select(x => x.FirstOrDefault(x => x.ContainsTrafficData) ?? x.First());
+		duplicateRepositoryPriorityFilter ??= _ => true;
+
+		return repositoriesList.Where(static x => !x.IsFork && !x.IsArchived).OrderByDescending(static x => x.DataDownloadedAt).GroupBy(static x => x.Name).Select(x => x.FirstOrDefault(duplicateRepositoryPriorityFilter) ?? x.First());
 	}
 }
